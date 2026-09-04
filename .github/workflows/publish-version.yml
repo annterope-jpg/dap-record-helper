@@ -3,7 +3,7 @@ name: Publish DAP Record Helper version
 on:
   push:
     paths:
-      - '.staging/v4/**'
+      - '.staging/v*/READY'
       - 'versions/v*.html'
 
 permissions:
@@ -25,13 +25,14 @@ jobs:
           set -euo pipefail
           changed="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" || true)"
           version=""
-          if echo "$changed" | grep -qx '.staging/v4/part-03.b64'; then
-            version="v4"
-          else
-            path="$(echo "$changed" | grep -E '^versions/v[5-9]\.html$' | head -n 1 || true)"
-            if [ -n "$path" ]; then
-              version="$(basename "$path" .html)"
-            fi
+          staged="$(echo "$changed" | grep -E '^\.staging/v[4-9]/READY$' | head -n 1 || true)"
+          direct="$(echo "$changed" | grep -E '^versions/v[4-9]\.html$' | head -n 1 || true)"
+          if [ -n "$staged" ]; then
+            version="$(echo "$staged" | cut -d/ -f2)"
+            echo "source=staged" >> "$GITHUB_OUTPUT"
+          elif [ -n "$direct" ]; then
+            version="$(basename "$direct" .html)"
+            echo "source=direct" >> "$GITHUB_OUTPUT"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if [ -z "$version" ]; then
@@ -40,19 +41,26 @@ jobs:
             echo "Publishing $version"
           fi
 
-      - name: Reconstruct exact v4 source
-        if: steps.version.outputs.version == 'v4'
+      - name: Reconstruct staged source
+        if: steps.version.outputs.version != '' && steps.version.outputs.source == 'staged'
         shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           mkdir -p versions
-          cat .staging/v4/part-*.b64 | base64 --decode | gzip --decompress > versions/v4.html
-          actual="$(sha256sum versions/v4.html | awk '{print $1}')"
-          expected="87cf76ac4befb45066c279f0c4b9631c6d0f706ef36c76a9eac808fb49724f4c"
-          if [ "$actual" != "$expected" ]; then
-            echo "v4 checksum mismatch: $actual" >&2
-            exit 1
+          test -f ".staging/${VERSION}/READY"
+          ls ".staging/${VERSION}"/part-*.b64 >/dev/null
+          cat ".staging/${VERSION}"/part-*.b64 | base64 --decode | gzip --decompress > "versions/${VERSION}.html"
+          actual="$(sha256sum "versions/${VERSION}.html" | awk '{print $1}')"
+          if [ -f ".staging/${VERSION}/SHA256" ]; then
+            expected="$(tr -d '[:space:]' < ".staging/${VERSION}/SHA256")"
+            if [ "$actual" != "$expected" ]; then
+              echo "${VERSION} checksum mismatch: expected $expected, got $actual" >&2
+              exit 1
+            fi
           fi
+          echo "Reconstructed ${VERSION}; sha256=${actual}"
 
       - name: Validate version source
         if: steps.version.outputs.version != ''
