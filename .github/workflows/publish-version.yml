@@ -1,0 +1,113 @@
+name: Publish DAP Record Helper version
+
+on:
+  push:
+    paths:
+      - '.staging/v4/**'
+      - 'versions/v*.html'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" || true)"
+          version=""
+          if echo "$changed" | grep -qx '.staging/v4/part-03.b64'; then
+            version="v4"
+          else
+            path="$(echo "$changed" | grep -E '^versions/v[5-9]\.html$' | head -n 1 || true)"
+            if [ -n "$path" ]; then
+              version="$(basename "$path" .html)"
+            fi
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ -z "$version" ]; then
+            echo "No publishable version found in this push."
+          else
+            echo "Publishing $version"
+          fi
+
+      - name: Reconstruct exact v4 source
+        if: steps.version.outputs.version == 'v4'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p versions
+          cat .staging/v4/part-*.b64 | base64 --decode | gzip --decompress > versions/v4.html
+          actual="$(sha256sum versions/v4.html | awk '{print $1}')"
+          expected="87cf76ac4befb45066c279f0c4b9631c6d0f706ef36c76a9eac808fb49724f4c"
+          if [ "$actual" != "$expected" ]; then
+            echo "v4 checksum mismatch: $actual" >&2
+            exit 1
+          fi
+
+      - name: Validate version source
+        if: steps.version.outputs.version != ''
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          test -s "versions/${VERSION}.html"
+          grep -qi "${VERSION}" "versions/${VERSION}.html"
+          grep -qi '<!doctype html>' "versions/${VERSION}.html"
+
+      - name: Update latest file and commit
+        if: steps.version.outputs.version != ''
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          cp "versions/${VERSION}.html" index.html
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "versions/${VERSION}.html" index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish ${VERSION}"
+            git push origin HEAD:main
+          fi
+
+      - name: Tag version
+        if: steps.version.outputs.version != ''
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if ! git rev-parse "$VERSION" >/dev/null 2>&1; then
+            git tag -a "$VERSION" -m "DAP Record Helper ${VERSION}"
+            git push origin "$VERSION"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.version != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          notes="releases/${VERSION}.md"
+          if [ ! -f "$notes" ]; then
+            printf '# %s\n\nDAP Record Helper %s\n' "$VERSION" "$VERSION" > "$notes"
+          fi
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists."
+          else
+            gh release create "$VERSION" "versions/${VERSION}.html#DAP_record_helper_${VERSION}.html" --title "$VERSION" --notes-file "$notes"
+          fi
