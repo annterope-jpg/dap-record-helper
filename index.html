@@ -1,0 +1,1853 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+  <title>DAP記録支援ツール v4</title>
+  <style>
+    :root {
+      --ink: #1b2d33;
+      --muted: #5d7076;
+      --line: #c9d9dc;
+      --soft-line: #dce7e9;
+      --paper: #fff;
+      --canvas: #f2f6f7;
+      --navy: #164760;
+      --navy-dark: #10394f;
+      --blue: #2a6f97;
+      --amber: #ad6b13;
+      --teal: #1d766e;
+      --violet: #675c96;
+      --red: #a63d40;
+      --red-soft: #fff1f1;
+      --green: #276b4b;
+      --green-soft: #eaf6ef;
+      --shadow: 0 12px 30px rgba(31, 66, 78, .09);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: linear-gradient(180deg, #e8f1f4 0, #f4f7f8 230px, #f4f7f8 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif;
+      line-height: 1.55;
+    }
+    button, select, textarea, input { font: inherit; }
+    button, select, input[type="checkbox"], input[type="radio"] { cursor: pointer; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: 3px solid rgba(42, 111, 151, .28);
+      outline-offset: 2px;
+    }
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(22, 71, 96, .16);
+      background: rgba(246, 249, 250, .97);
+      backdrop-filter: blur(10px);
+    }
+    .header-inner { max-width: 1540px; margin: 0 auto; padding: 12px 24px 0; }
+    .title-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      display: grid;
+      width: 43px;
+      height: 43px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 13px;
+      color: white;
+      background: var(--navy);
+      font-size: .9rem;
+      font-weight: 900;
+    }
+    h1 { margin: 0; font-size: clamp(1.1rem, 2vw, 1.45rem); line-height: 1.25; letter-spacing: .02em; }
+    h1 small { color: var(--muted); font-size: .65em; font-weight: 750; }
+    .subtitle { margin: 2px 0 0; color: var(--muted); font-size: .77rem; }
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex: 0 0 auto;
+      padding: 7px 11px;
+      border: 1px solid #b8d6c6;
+      border-radius: 999px;
+      color: var(--green);
+      background: var(--green-soft);
+      font-size: .75rem;
+      font-weight: 800;
+    }
+    .privacy-dot { width: 8px; height: 8px; border-radius: 50%; background: #2c8b61; box-shadow: 0 0 0 4px rgba(44,139,97,.12); }
+    .app-tabs { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+    .tab-button {
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 0;
+      border-bottom: 3px solid transparent;
+      color: #567078;
+      background: transparent;
+      font-size: .8rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .tab-button[aria-selected="true"] { border-bottom-color: var(--navy); color: var(--navy); }
+    .app { max-width: 1540px; margin: 0 auto; padding: 17px 24px 30px; }
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 10px 13px;
+      border: 1px solid #c8dce2;
+      border-radius: 12px;
+      color: #31545f;
+      background: #f8fcfd;
+      font-size: .78rem;
+    }
+    .notice strong { color: var(--navy-dark); }
+    .notice-icon { flex: 0 0 auto; font-weight: 900; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr); gap: 18px; align-items: start; }
+    .panel {
+      border: 1px solid var(--soft-line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.97);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 17px;
+      border-bottom: 1px solid var(--soft-line);
+      background: #fbfcfc;
+    }
+    .panel-title { margin: 0; font-size: 1rem; }
+    .panel-note { margin: 3px 0 0; color: var(--muted); font-size: .72rem; }
+    .input-body, .preview-body, .consult-body, .guide-body { padding: 15px; }
+    .settings {
+      display: grid;
+      grid-template-columns: minmax(170px, 1fr) minmax(190px, 1fr) auto;
+      gap: 10px;
+      margin-bottom: 13px;
+      padding: 11px;
+      border: 1px solid var(--soft-line);
+      border-radius: 12px;
+      background: #f7fafb;
+    }
+    .setting { display: grid; gap: 4px; }
+    .setting > label, .setting-label { color: var(--muted); font-size: .69rem; font-weight: 800; }
+    select, input[type="text"] {
+      width: 100%;
+      min-height: 39px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: white;
+    }
+    .inline-check { display: inline-flex; align-items: center; gap: 7px; min-height: 39px; color: #3c5861; font-size: .75rem; font-weight: 750; }
+    .inline-check input { width: 17px; height: 17px; accent-color: var(--navy); }
+    .mode-note {
+      margin-bottom: 13px;
+      padding: 10px 12px;
+      border-left: 4px solid var(--blue);
+      border-radius: 8px;
+      color: #38565f;
+      background: #f0f7f9;
+      font-size: .75rem;
+    }
+    .addon-box {
+      margin-bottom: 13px;
+      padding: 10px 11px;
+      border: 1px solid var(--soft-line);
+      border-radius: 12px;
+      background: #fafcfc;
+    }
+    .addon-title { display: block; margin-bottom: 7px; color: #405e67; font-size: .72rem; font-weight: 850; }
+    .addon-options { display: flex; flex-wrap: wrap; gap: 7px; }
+    .addon-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #3d5962;
+      background: white;
+      font-size: .7rem;
+      font-weight: 700;
+    }
+    .addon-option input { accent-color: var(--navy); }
+    details.criteria, details.scratch {
+      margin-bottom: 13px;
+      border: 1px solid var(--soft-line);
+      border-radius: 12px;
+      background: #f8fbfb;
+    }
+    details > summary { padding: 10px 12px; color: var(--navy-dark); font-size: .77rem; font-weight: 850; cursor: pointer; }
+    .criteria-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; padding: 0 11px 11px; }
+    .criterion { padding: 8px 7px; border-radius: 9px; color: #36535c; background: #edf4f5; font-size: .7rem; text-align: center; }
+    .scratch-body { padding: 0 11px 11px; }
+    .scratch-note { margin: 0 0 6px; color: #7b5b28; font-size: .69rem; }
+    .section-card {
+      position: relative;
+      margin-bottom: 13px;
+      padding: 13px 13px 12px 16px;
+      border: 1px solid var(--soft-line);
+      border-radius: 13px;
+      background: white;
+    }
+    .section-card::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      border-radius: 13px 0 0 13px;
+      background: var(--section-color);
+      content: "";
+    }
+    .section-d { --section-color: var(--blue); }
+    .section-a { --section-color: var(--amber); }
+    .section-p { --section-color: var(--teal); }
+    .section-meta { --section-color: var(--navy); background: #fafdfe; }
+    .section-intake { --section-color: var(--violet); }
+    .section-addon { --section-color: #4f7d82; background: #fcfefe; }
+    .section-risk { --section-color: var(--red); background: #fffdfd; }
+    .section-heading { display: flex; align-items: center; gap: 9px; margin: 0 0 10px; font-size: .86rem; }
+    .section-letter {
+      display: inline-grid;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 6px;
+      place-items: center;
+      border-radius: 8px;
+      color: white;
+      background: var(--section-color);
+      font-size: .72rem;
+      font-weight: 900;
+    }
+    .field { margin-top: 11px; }
+    .field:first-of-type { margin-top: 0; }
+    .field-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+    .field-label { color: #263d45; font-size: .78rem; font-weight: 850; }
+    .include-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .67rem; white-space: nowrap; }
+    .include-toggle input { width: 16px; height: 16px; accent-color: var(--navy); }
+    .prompt { display: block; margin: 0 0 5px; color: #70858b; font-size: .68rem; }
+    .guide-off .prompt, .guide-off .criteria { display: none; }
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 68px;
+      resize: vertical;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink);
+      background: #fcfefe;
+      line-height: 1.55;
+    }
+    textarea.short { min-height: 57px; }
+    textarea.tall { min-height: 92px; }
+    textarea::placeholder, input::placeholder { color: #91a0a5; }
+    textarea:focus, input[type="text"]:focus, select:focus { border-color: #70a4ba; background: white; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+    .chip {
+      padding: 5px 8px;
+      border: 1px solid #cbdadd;
+      border-radius: 999px;
+      color: #36535d;
+      background: #f5f9fa;
+      font-size: .66rem;
+      font-weight: 700;
+    }
+    .chip:hover { border-color: #8eb2bf; background: #edf5f7; }
+    .risk-status-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+    .risk-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: white;
+      font-size: .7rem;
+    }
+    .risk-option input { margin-top: 3px; accent-color: var(--red); }
+    .risk-alert { margin: 9px 0 0; padding: 8px 10px; border-radius: 9px; color: #814144; background: var(--red-soft); font-size: .69rem; font-weight: 700; }
+    .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .preview-panel { position: sticky; top: 116px; }
+    .status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+    .status-pill { padding: 4px 8px; border-radius: 999px; color: var(--muted); background: #edf2f3; font-size: .66rem; font-weight: 800; }
+    .status-pill.warn { color: #8b4a16; background: #fff0dc; }
+    .output {
+      min-height: 290px;
+      margin: 0;
+      padding: 17px;
+      border: 1px solid #c8d8dc;
+      border-radius: 13px;
+      color: #21363d;
+      background: linear-gradient(90deg, rgba(42,111,151,.04), transparent 14%), white;
+      font-family: "Yu Gothic UI", "Meiryo", sans-serif;
+      font-size: .88rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .output.empty { display: grid; place-items: center; color: #86979c; text-align: center; }
+    .meter { display: grid; gap: 5px; margin: 10px 1px 0; }
+    .meter-line { height: 7px; border-radius: 999px; background: #e8eeee; overflow: hidden; }
+    .meter-fill { width: 0; height: 100%; border-radius: inherit; background: var(--teal); transition: width 160ms ease; }
+    .meter-fill.over { background: var(--amber); }
+    .meter-copy { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .67rem; }
+    .warning-list {
+      display: none;
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border: 1px solid #efd2a8;
+      border-radius: 10px;
+      color: #80501b;
+      background: #fff8eb;
+      font-size: .72rem;
+    }
+    .warning-list.visible { display: block; }
+    .warning-list ul { margin: 5px 0 0; padding-left: 19px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 13px; }
+    .button { min-height: 42px; padding: 9px 12px; border: 1px solid transparent; border-radius: 10px; font-weight: 850; }
+    .button-primary { color: white; background: var(--navy); }
+    .button-primary:hover { background: var(--navy-dark); }
+    .button-secondary { border-color: var(--line); color: #36535d; background: white; }
+    .button-secondary:hover { background: #f3f7f8; }
+    .button-danger { border-color: #e6c5c6; color: var(--red); background: white; }
+    .button-danger:hover { background: var(--red-soft); }
+    .button-small { min-height: 34px; padding: 6px 9px; font-size: .7rem; }
+    .privacy-foot { margin: 13px 2px 0; color: #64767b; font-size: .68rem; }
+    .privacy-foot strong { color: #405a62; }
+    .consult-toolbar { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-bottom: 12px; }
+    .consult-tip { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; color: #38565f; background: #eff7f8; font-size: .74rem; }
+    .guide-wrap { max-width: 1050px; margin: 0 auto; }
+    .guide-section { margin-bottom: 14px; padding: 15px 17px; border: 1px solid var(--soft-line); border-radius: 13px; background: white; }
+    .guide-section h2 { margin: 0 0 9px; color: var(--navy-dark); font-size: 1rem; }
+    .guide-section h3 { margin: 13px 0 5px; font-size: .85rem; }
+    .guide-section p, .guide-section li { color: #405b63; font-size: .77rem; }
+    .guide-section ul, .guide-section ol { margin: 7px 0; padding-left: 22px; }
+    .guide-table { width: 100%; border-collapse: collapse; font-size: .73rem; }
+    .guide-table th, .guide-table td { padding: 8px 9px; border: 1px solid var(--soft-line); vertical-align: top; text-align: left; }
+    .guide-table th { color: var(--navy-dark); background: #f0f6f7; }
+    .example { padding: 9px 11px; border-left: 4px solid #86aeb7; border-radius: 7px; color: #405c64; background: #f5f9fa; font-size: .73rem; }
+    .timer-box { display: flex; align-items: center; gap: 7px; }
+    .timer { min-width: 62px; color: var(--navy); font-variant-numeric: tabular-nums; font-weight: 900; text-align: center; }
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 50;
+      max-width: min(380px,calc(100vw - 44px));
+      padding: 11px 14px;
+      border-radius: 11px;
+      color: white;
+      background: #203f49;
+      box-shadow: 0 10px 30px rgba(24,57,68,.25);
+      font-size: .79rem;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    @media (max-width: 1050px) {
+      .workspace { grid-template-columns: 1fr; }
+      .preview-panel { position: static; }
+    }
+    @media (max-width: 720px) {
+      .header-inner, .app { padding-left: 12px; padding-right: 12px; }
+      .title-row { align-items: flex-start; }
+      .privacy-badge { padding: 6px 8px; }
+      .privacy-long { display: none; }
+      .settings, .report-grid, .consult-toolbar { grid-template-columns: 1fr; }
+      .criteria-grid, .risk-status-grid { grid-template-columns: 1fr 1fr; }
+      .actions { grid-template-columns: 1fr; }
+      .panel-head { flex-direction: column; }
+    }
+    @media (max-width: 440px) {
+      .criteria-grid, .risk-status-grid { grid-template-columns: 1fr; }
+      .field-top { align-items: flex-start; }
+    }
+    @media print {
+      body { background: white; }
+      .app-header, .input-panel, .actions, .notice, .privacy-foot, .warning-list, .meter { display: none !important; }
+      .app, .preview-body { padding: 0; }
+      .workspace { display: block; }
+      .panel, .output { border: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="title-row">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">DAP+</div>
+          <div>
+            <h1>DAP記録支援ツール <small>v4</small></h1>
+            <p class="subtitle">日常DAP・初回／複雑ケース・相談要約を、入力した事実だけで整理します。</p>
+          </div>
+        </div>
+        <div class="privacy-badge" title="自動保存・外部通信・AI接続はありません">
+          <span class="privacy-dot" aria-hidden="true"></span>
+          <span><span class="privacy-long">通信なし・</span>保存なし</span>
+        </div>
+      </div>
+      <nav class="app-tabs" role="tablist" aria-label="機能">
+        <button type="button" class="tab-button" role="tab" aria-selected="true" aria-controls="view-record" data-view="record">記録作成</button>
+        <button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="view-consult" data-view="consult">相談用要約</button>
+        <button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="view-guide" data-view="guide">使い方・記録ガイド</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app">
+    <div class="notice">
+      <span class="notice-icon" aria-hidden="true">ⓘ</span>
+      <div><strong>このページを閉じると入力内容は消えます。</strong> 自動保存・ブラウザ保存・外部送信は行いません。氏名、患者ID、生年月日などは入力せず、完成後に電子カルテへ貼り付けてください。</div>
+    </div>
+
+    <section id="view-record" role="tabpanel">
+      <div class="workspace">
+        <section class="panel input-panel" aria-labelledby="record-input-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="record-input-title">1. 面接の素材を選んで入力</h2>
+              <p class="panel-note">文章に整えず、キーワードや短文から始めて構いません。</p>
+            </div>
+            <div class="timer-box" aria-label="記録時間タイマー">
+              <span class="timer" id="timer">00:00</span>
+              <button type="button" class="button button-secondary button-small" id="timer-toggle">開始</button>
+              <button type="button" class="button button-secondary button-small" id="timer-reset">0に戻す</button>
+            </div>
+          </div>
+          <div class="input-body" id="record-surface">
+            <div class="settings">
+              <div class="setting">
+                <label for="mode">記録モード</label>
+                <select id="mode">
+                  <option value="standard">通常DAP</option>
+                  <option value="intake">初回・包括的アセスメント</option>
+                  <option value="complex">複雑ケースDAP</option>
+                </select>
+              </div>
+              <div class="setting">
+                <label for="output-style">出力形式</label>
+                <select id="output-style">
+                  <option value="compact">カルテ貼付（項目ごとに改行）</option>
+                  <option value="bullets">見出し付き箇条書き</option>
+                </select>
+              </div>
+              <label class="inline-check"><input type="checkbox" id="guided-toggle" checked> 入力ガイドを表示</label>
+            </div>
+
+            <div class="mode-note" id="mode-note"></div>
+
+            <div class="addon-box">
+              <span class="addon-title">必要な補助欄だけ追加</span>
+              <div class="addon-options">
+                <label class="addon-option"><input type="checkbox" data-addon-toggle="trauma"> トラウマ・解離</label>
+                <label class="addon-option"><input type="checkbox" data-addon-toggle="student"> 高校生・学生</label>
+                <label class="addon-option"><input type="checkbox" data-addon-toggle="collateral"> 家族・夫婦同席</label>
+                <label class="addon-option"><input type="checkbox" data-addon-toggle="safety"> 安全性・リスク</label>
+              </div>
+            </div>
+
+            <details class="criteria">
+              <summary>記録に残す4つの基準</summary>
+              <div class="criteria-grid">
+                <div class="criterion"><strong>治療判断</strong><br>方針に影響</div>
+                <div class="criterion"><strong>安全</strong><br>リスク関連</div>
+                <div class="criterion"><strong>変化</strong><br>前回との差</div>
+                <div class="criterion"><strong>引継ぎ</strong><br>次回・他職種</div>
+              </div>
+            </details>
+
+            <details class="scratch">
+              <summary>一時メモ（正式出力には含めない）</summary>
+              <div class="scratch-body">
+                <p class="scratch-note">思い出した素材の置き場です。必要なものだけ下の正式欄へ移してください。ページを閉じると消えます。</p>
+                <textarea id="scratch-note" class="short" data-sensitive placeholder="未整理のキーワードや、後で分類する内容"></textarea>
+              </div>
+            </details>
+
+            <section class="section-card section-meta">
+              <h3 class="section-heading"><span class="section-letter">冒頭</span>カルテ冒頭情報</h3>
+              <span class="prompt">入力した内容をラベルなしで、Dまたは初回記録の見出しより前に表示します。必要な欄だけ使用してください。</span>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="record-service">実施区分・時間</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="record-service" checked> 出力</label>
+                </div>
+                <textarea id="record-service" class="short" data-sensitive placeholder="例：心理カウンセリング30分以上"></textarea>
+                <div class="chips" aria-label="実施区分・時間の頻用文">
+                  <button type="button" class="chip" data-target="record-service" data-phrase="心理カウンセリング30分以上">心理カウンセリング30分以上</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="record-attendance">同席・付き添い</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="record-attendance" checked> 出力</label>
+                </div>
+                <textarea id="record-attendance" class="short" data-sensitive placeholder="例：母親同席、恋人同席、家族付き添い"></textarea>
+                <div class="chips" aria-label="同席・付き添いの頻用文">
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="本人のみ">本人のみ</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="母親同席">母親同席</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="父親同席">父親同席</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="両親同席">両親同席</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="配偶者同席">配偶者同席</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="恋人同席">恋人同席</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="家族付き添い">家族付き添い</button>
+                  <button type="button" class="chip" data-target="record-attendance" data-phrase="支援者同席">支援者同席</button>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="record-header-other">その他の冒頭情報</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="record-header-other" checked> 出力</label>
+                </div>
+                <textarea id="record-header-other" class="short" data-sensitive placeholder="実施形態など、冒頭に必要な情報がある場合"></textarea>
+              </div>
+            </section>
+
+            <div data-modes="standard,complex">
+              <section class="section-card section-d">
+                <h3 class="section-heading"><span class="section-letter">D</span>Data：報告・観察・介入・反応</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="session-focus">今回の主題・前回からの変化</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="session-focus" checked> 出力</label>
+                  </div>
+                  <span class="prompt">主題は原則3つまで。前回と違うことを優先します。</span>
+                  <textarea id="session-focus" class="short" data-sensitive placeholder="例：復職準備を検討。睡眠は前回より安定。"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="patient-report">本人の報告</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="patient-report" checked> 出力</label>
+                  </div>
+                  <span class="prompt">本人が述べた症状、生活への影響、取り組みを短く記載します。</span>
+                  <textarea id="patient-report" data-sensitive placeholder="例：本人は朝の不安が軽減したと報告。"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="observation">観察事実・精神状態</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="observation" checked> 出力</label>
+                  </div>
+                  <span class="prompt">解釈ではなく、面接で観察できた事実を記載します。変化がなければ省略できます。</span>
+                  <textarea id="observation" class="short" data-sensitive placeholder="例：表情は硬いが疎通良好。話題に沿った応答あり。"></textarea>
+                </div>
+                <div class="field" data-modes="complex">
+                  <div class="field-top">
+                    <label class="field-label" for="measure-result">尺度・検査・機能の変化</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="measure-result" checked> 出力</label>
+                  </div>
+                  <span class="prompt">今回の判断に関係する結果だけを記載します。</span>
+                  <textarea id="measure-result" class="short" data-sensitive placeholder="尺度結果、就労・学業・対人・セルフケア等の変化"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intervention">実施した介入</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intervention" checked> 出力</label>
+                  </div>
+                  <span class="prompt">検討したことではなく、実際に行った介入を選びます。</span>
+                  <textarea id="intervention" class="short" data-sensitive placeholder="実施した内容"></textarea>
+                  <div class="chips" aria-label="介入の頻用文">
+                    <button type="button" class="chip" data-target="intervention" data-phrase="心理教育を実施">心理教育</button>
+                    <button type="button" class="chip" data-target="intervention" data-phrase="認知・感情・行動の関連を整理">CBT整理</button>
+                    <button type="button" class="chip" data-target="intervention" data-phrase="価値と実行可能な行動を明確化">ACT：価値・行動</button>
+                    <button type="button" class="chip" data-target="intervention" data-phrase="思考との距離を取る練習を実施">ACT：脱フュージョン</button>
+                    <button type="button" class="chip" data-target="intervention" data-phrase="脅威・動因・安心システムの観点から整理">CFT：3システム</button>
+                    <button type="button" class="chip" data-target="intervention" data-phrase="コンパッショネイトな視点から自己批判を検討">CFT：自己批判</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="response">本人の反応</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="response" checked> 出力</label>
+                  </div>
+                  <span class="prompt">理解、納得、抵抗、感情変化、実施可能性などを記載します。</span>
+                  <textarea id="response" class="short" data-sensitive placeholder="例：自身のパターンとして理解を示した。"></textarea>
+                </div>
+              </section>
+
+              <section class="section-card section-a">
+                <h3 class="section-heading"><span class="section-letter">A</span>Assessment：臨床的な理解・進捗</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="assessment">今回の見立て</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="assessment" checked> 出力</label>
+                  </div>
+                  <span class="prompt">報告・観察から導いた暫定的な理解を、断定せず記載します。</span>
+                  <textarea id="assessment" data-sensitive placeholder="例：不安は残るが、回避パターンへの気づきが進んでいると考える。"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="goal-change">目標に対する進捗・変化</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="goal-change" checked> 出力</label>
+                  </div>
+                  <span class="prompt">改善だけでなく、停滞・悪化・判断困難も記載できます。</span>
+                  <textarea id="goal-change" class="short" data-sensitive placeholder="例：回避は継続するが、小さな外出を1回実施。"></textarea>
+                </div>
+                <div data-modes="complex">
+                  <div class="field">
+                    <div class="field-top">
+                      <label class="field-label" for="factors">背景・誘発・維持要因</label>
+                      <label class="include-toggle"><input type="checkbox" data-include="factors" checked> 出力</label>
+                    </div>
+                    <span class="prompt">今回の介入選択に関係する生物・心理・社会的要因だけを残します。</span>
+                    <textarea id="factors" data-sensitive placeholder="誘発要因、維持循環、環境要因等"></textarea>
+                  </div>
+                  <div class="field">
+                    <div class="field-top">
+                      <label class="field-label" for="resources">強み・保護要因・利用できる資源</label>
+                      <label class="include-toggle"><input type="checkbox" data-include="resources" checked> 出力</label>
+                    </div>
+                    <textarea id="resources" class="short" data-sensitive placeholder="例：通院継続、家族の協力、既に使えている対処"></textarea>
+                  </div>
+                  <div class="field">
+                    <div class="field-top">
+                      <label class="field-label" for="uncertainty">未解決事項・判断できないこと</label>
+                      <label class="include-toggle"><input type="checkbox" data-include="uncertainty" checked> 出力</label>
+                    </div>
+                    <span class="prompt">不確実なことを、推測で埋めずに明示します。</span>
+                    <textarea id="uncertainty" class="short" data-sensitive placeholder="追加評価が必要な点、情報が一致しない点"></textarea>
+                  </div>
+                </div>
+              </section>
+
+              <section class="section-card section-p">
+                <h3 class="section-heading"><span class="section-letter">P</span>Plan：方針・合意・連携</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="plan">今後の治療方針・次回の焦点</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="plan" checked> 出力</label>
+                  </div>
+                  <span class="prompt">次に何をするかが、他職種にも分かる形で記載します。</span>
+                  <textarea id="plan" data-sensitive placeholder="例：回避場面を整理し、小さな行動実験を検討する。"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="homework">本人との合意・ホームワーク</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="homework" checked> 出力</label>
+                  </div>
+                  <textarea id="homework" class="short" data-sensitive placeholder="設定していない場合は空欄"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="coordination">共有・連携</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="coordination" checked> 出力</label>
+                  </div>
+                  <textarea id="coordination" class="short" data-sensitive placeholder="例：睡眠状況について主治医と共有する。"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="reminder">次回に確認すること</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="reminder" checked> 出力</label>
+                  </div>
+                  <span class="prompt">忘れる不安から本文を長くする代わりに、次回確認事項として分けます。</span>
+                  <textarea id="reminder" class="short" data-sensitive placeholder="次回の質問、未確認情報"></textarea>
+                </div>
+              </section>
+            </div>
+
+            <div data-modes="intake" hidden>
+              <section class="section-card section-intake">
+                <h3 class="section-heading"><span class="section-letter">初回</span>面接目的・現在の困難</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-purpose">面接目的・本人の希望</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-purpose" checked> 出力</label>
+                  </div>
+                  <span class="prompt">誰が何を求めて来談したか、本人の言葉と紹介目的を区別します。</span>
+                  <textarea id="intake-purpose" data-sensitive placeholder="来談経緯、本人が期待すること"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-problems">主要な困りごと</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-problems" checked> 出力</label>
+                  </div>
+                  <span class="prompt">原則1～3点に優先順位をつけます。</span>
+                  <textarea id="intake-problems" data-sensitive placeholder="症状・困難・本人の捉え方"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-course">始まり・経過・誘因</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-course" checked> 出力</label>
+                  </div>
+                  <textarea id="intake-course" data-sensitive placeholder="発症時期、増悪・軽減、最近の出来事"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-impact">生活機能への影響</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-impact" checked> 出力</label>
+                  </div>
+                  <textarea id="intake-impact" class="short" data-sensitive placeholder="就労・学業、対人、家庭、睡眠、セルフケア等"></textarea>
+                </div>
+              </section>
+
+              <section class="section-card section-intake">
+                <h3 class="section-heading"><span class="section-letter">情報</span>関連歴・観察</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-history">治療判断に関係する既往・背景</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-history" checked> 出力</label>
+                  </div>
+                  <span class="prompt">治療歴、服薬、身体疾患、発達・生活・心理社会的背景を、現在の問題に関係する範囲に絞ります。</span>
+                  <textarea id="intake-history" class="tall" data-sensitive placeholder="過去の治療・服薬、関連する生活歴、環境要因"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-state">本人の報告・面接時の観察</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-state" checked> 出力</label>
+                  </div>
+                  <textarea id="intake-state" data-sensitive placeholder="本人の説明と、観察できた事実を分けて記載"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-mse">精神状態で重要な所見</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-mse" checked> 出力</label>
+                  </div>
+                  <span class="prompt">すべてを網羅せず、判断や方針に関係する所見を記載します。</span>
+                  <textarea id="intake-mse" data-sensitive placeholder="気分・感情、思考、知覚、認知、洞察等"></textarea>
+                </div>
+              </section>
+
+              <section class="section-card section-intake">
+                <h3 class="section-heading"><span class="section-letter">理解</span>暫定的なケースフォーミュレーション</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="formulation-lens">補助する視点</label>
+                  </div>
+                  <select id="formulation-lens">
+                    <option value="integrated">統合的（生物・心理・社会）</option>
+                    <option value="cbt">CBT：維持循環</option>
+                    <option value="act">ACT：柔軟性・価値</option>
+                    <option value="cft">CFT：脅威・自己批判・安心</option>
+                  </select>
+                  <span class="prompt" id="lens-prompt"></span>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-formulation">現時点の暫定的理解</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-formulation" checked> 出力</label>
+                  </div>
+                  <span class="prompt">誘発要因、維持要因、保護要因をつなげます。情報不足は断定しません。</span>
+                  <textarea id="intake-formulation" class="tall" data-sensitive placeholder="現時点で考えられる理解と、その根拠"></textarea>
+                </div>
+              </section>
+
+              <section class="section-card section-p">
+                <h3 class="section-heading"><span class="section-letter">計画</span>優先目標・今後の方針</h3>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-goals">優先する目標</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-goals" checked> 出力</label>
+                  </div>
+                  <span class="prompt">本人と共有できる目標を1～3個に絞ります。</span>
+                  <textarea id="intake-goals" data-sensitive placeholder="本人の目標、短期的な到達点"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-plan">今後の評価・介入・連携</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-plan" checked> 出力</label>
+                  </div>
+                  <textarea id="intake-plan" data-sensitive placeholder="追加評価、介入方針、主治医・他機関との連携"></textarea>
+                </div>
+                <div class="field">
+                  <div class="field-top">
+                    <label class="field-label" for="intake-unknowns">未確認事項・次回確認すること</label>
+                    <label class="include-toggle"><input type="checkbox" data-include="intake-unknowns" checked> 出力</label>
+                  </div>
+                  <span class="prompt">分からないことを推測で埋めず、次の評価課題として残します。</span>
+                  <textarea id="intake-unknowns" class="short" data-sensitive placeholder="追加で確認する情報"></textarea>
+                </div>
+              </section>
+            </div>
+
+            <section class="section-card section-addon" data-addon="trauma" hidden>
+              <h3 class="section-heading"><span class="section-letter">補助</span>トラウマ・解離</h3>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="trauma-current">現在の症状・解離状態・誘因</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="trauma-current" checked> 出力</label>
+                </div>
+                <span class="prompt">出来事の詳細ではなく、現在の症状、誘因、通常状態からの変化を優先します。</span>
+                <textarea id="trauma-current" data-sensitive placeholder="侵入症状、回避、過覚醒、感覚麻痺、離人、健忘等"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="trauma-impact">機能への影響・安定化資源</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="trauma-impact" checked> 出力</label>
+                </div>
+                <textarea id="trauma-impact" data-sensitive placeholder="生活への影響、使えている対処、支援者、グラウンディング等"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="trauma-plan">安定化介入・反応・今後の方針</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="trauma-plan" checked> 出力</label>
+                </div>
+                <textarea id="trauma-plan" data-sensitive placeholder="実施した介入、反応、ペース調整、次回方針"></textarea>
+              </div>
+            </section>
+
+            <section class="section-card section-addon" data-addon="student" hidden>
+              <h3 class="section-heading"><span class="section-letter">補助</span>高校生・学生</h3>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="student-context">学業・学校生活・発達上の文脈</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="student-context" checked> 出力</label>
+                </div>
+                <textarea id="student-context" data-sensitive placeholder="出席、学習、友人、進路、家庭との関係等"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="student-sharing">保護者・学校との共有範囲と連携</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="student-sharing" checked> 出力</label>
+                </div>
+                <span class="prompt">本人への説明、同意、守秘の範囲、共有した内容を区別します。</span>
+                <textarea id="student-sharing" data-sensitive placeholder="同意、共有範囲、学校・保護者との連携方針"></textarea>
+              </div>
+            </section>
+
+            <section class="section-card section-addon" data-addon="collateral" hidden>
+              <h3 class="section-heading"><span class="section-letter">補助</span>家族・夫婦同席</h3>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="collateral-source">同席者・情報源・本人の同意</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="collateral-source" checked> 出力</label>
+                </div>
+                <textarea id="collateral-source" class="short" data-sensitive placeholder="続柄・関係、誰からの情報か、本人の同意・共有範囲"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="collateral-difference">報告の相違・相互作用で重要な点</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="collateral-difference" checked> 出力</label>
+                </div>
+                <textarea id="collateral-difference" data-sensitive placeholder="本人と同席者で異なる報告、観察された相互作用"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="collateral-agreement">合意事項・今後の情報共有</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="collateral-agreement" checked> 出力</label>
+                </div>
+                <textarea id="collateral-agreement" class="short" data-sensitive placeholder="面談での合意、役割、次回、共有方針"></textarea>
+              </div>
+            </section>
+
+            <section class="section-card section-risk" data-addon="safety" hidden>
+              <h3 class="section-heading"><span class="section-letter">安全</span>自傷・自殺企図・他害等の確認</h3>
+              <span class="prompt">自傷の存在だけで高低を決めず、通常状態からの変化、意図・計画・準備性、保護要因、実施対応を記録します。</span>
+              <div class="risk-status-grid" role="radiogroup" aria-label="安全性の確認状況">
+                <label class="risk-option"><input type="radio" name="safety-status" value="not-assessed" checked><span>今回は未評価</span></label>
+                <label class="risk-option"><input type="radio" name="safety-status" value="none"><span>今回の確認で特記事項なし</span></label>
+                <label class="risk-option"><input type="radio" name="safety-status" value="baseline"><span>既存の自傷等あり・急性変化なし</span></label>
+                <label class="risk-option"><input type="radio" name="safety-status" value="change"><span>通常状態から変化あり・要記載</span></label>
+                <label class="risk-option"><input type="radio" name="safety-status" value="major"><span>重大な自殺企図／他害リスク・要対応</span></label>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-baseline">通常の状態・自傷等の機能</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-baseline" checked> 出力</label>
+                </div>
+                <textarea id="safety-baseline" data-sensitive placeholder="通常の頻度・方法・機能、過去の企図等"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-change">今回の変化・具体的事実</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-change" checked> 出力</label>
+                </div>
+                <textarea id="safety-change" data-sensitive placeholder="頻度・重症度・方法の変化、最近の出来事、観察事実"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-suicide">自殺念慮・意図・計画・準備性・手段へのアクセス</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-suicide" checked> 出力</label>
+                </div>
+                <textarea id="safety-suicide" data-sensitive placeholder="確認した内容と本人の回答"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-harm">他害の対象・意図・具体性</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-harm" checked> 出力</label>
+                </div>
+                <textarea id="safety-harm" class="short" data-sensitive placeholder="該当時のみ"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-protective">保護要因・安全を保つ資源</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-protective" checked> 出力</label>
+                </div>
+                <textarea id="safety-protective" class="short" data-sensitive placeholder="支援者、受療意欲、将来予定、対処、アクセス制限等"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-judgment">現時点の臨床的判断と根拠</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-judgment" checked> 出力</label>
+                </div>
+                <textarea id="safety-judgment" data-sensitive placeholder="自動判定ではなく、確認事実に基づく臨床的判断"></textarea>
+              </div>
+              <div class="field">
+                <div class="field-top">
+                  <label class="field-label" for="safety-actions">実施した対応・安全計画・フォロー</label>
+                  <label class="include-toggle"><input type="checkbox" data-include="safety-actions" checked> 出力</label>
+                </div>
+                <textarea id="safety-actions" data-sensitive placeholder="安全確保、受診調整、相談先、フォロー時期等"></textarea>
+              </div>
+              <label class="inline-check"><input type="checkbox" id="doctor-report-toggle"> 主治医への報告・相談記録を入力する</label>
+              <div id="doctor-report-fields" hidden>
+                <div class="risk-alert">重大な自殺企図リスクまたは他害リスクでは、院内手順と主治医の指示を優先してください。本欄は対応を決定するものではありません。</div>
+                <div class="report-grid">
+                  <div class="field"><label class="field-label" for="report-time">報告日時</label><input type="text" id="report-time" data-sensitive placeholder="例：8/31 15:20"></div>
+                  <div class="field"><label class="field-label" for="report-method">方法</label><select id="report-method"><option value="">選択</option><option>対面</option><option>電話</option><option>院内連絡</option><option>その他</option></select></div>
+                  <div class="field"><label class="field-label" for="report-recipient">報告・相談先</label><input type="text" id="report-recipient" data-sensitive placeholder="例：主治医"></div>
+                  <div class="field"><label class="field-label" for="report-content">報告した要点</label><textarea id="report-content" class="short" data-sensitive></textarea></div>
+                  <div class="field"><label class="field-label" for="report-instruction">受けた指示</label><textarea id="report-instruction" class="short" data-sensitive></textarea></div>
+                  <div class="field"><label class="field-label" for="report-action">指示後に実施したこと</label><textarea id="report-action" class="short" data-sensitive></textarea></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="panel preview-panel" aria-labelledby="record-preview-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="record-preview-title">2. 完成記録を確認</h2>
+              <p class="panel-note">入力内容を配置するだけで、事実や判断は補完しません。</p>
+            </div>
+            <div class="status-row">
+              <span class="status-pill" id="mode-label">通常DAP</span>
+              <span class="status-pill warn" id="safety-label">安全性欄：未使用</span>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div class="output empty" id="record-output" aria-live="polite">左側へ入力すると、ここに記録が表示されます。</div>
+            <div class="meter" aria-label="記録文字数">
+              <div class="meter-line"><div class="meter-fill" id="meter-fill"></div></div>
+              <div class="meter-copy"><span id="character-count">0文字</span><span id="character-guide"></span></div>
+            </div>
+            <div class="warning-list" id="record-warning-box" role="status">
+              <strong>確認してください</strong>
+              <ul id="record-warning-items"></ul>
+            </div>
+            <div class="actions">
+              <button type="button" class="button button-primary" id="copy-record">完成記録をコピー</button>
+              <button type="button" class="button button-secondary" id="select-record">完成文を選択</button>
+              <button type="button" class="button button-danger" id="clear-all">全入力を消去</button>
+              <button type="button" class="button button-secondary" id="copy-clear">クリップボードを空にする</button>
+            </div>
+            <p class="privacy-foot"><strong>注意：</strong>コピー後の文章は端末のクリップボード履歴に残る場合があります。電子カルテへ貼り付けた後、クリップボードを空にしてください。本ツールは診断、リスク判定、院内手順を代替しません。</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-consult" role="tabpanel" hidden>
+      <div class="workspace">
+        <section class="panel input-panel" aria-labelledby="consult-input-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="consult-input-title">主治医・他職種への相談用要約</h2>
+              <p class="panel-note">結論、事実、評価、実施済み対応、確認したいことの順に絞ります。</p>
+            </div>
+          </div>
+          <div class="consult-body">
+            <p class="consult-tip">「現在の記録から下書き」を使うと、記録画面の入力内容を機械的に配置します。文章や判断の自動生成はしません。</p>
+            <div class="consult-toolbar">
+              <div class="setting">
+                <label for="consult-type">相談種別</label>
+                <select id="consult-type">
+                  <option value="">選択してください</option>
+                  <option>自傷・自殺企図・他害等の安全性</option>
+                  <option>症状・診断・追加評価</option>
+                  <option>治療方針</option>
+                  <option>服薬・身体面</option>
+                  <option>家族・学校・職場等との連携</option>
+                  <option>その他</option>
+                </select>
+              </div>
+              <button type="button" class="button button-secondary" id="import-consult">現在の記録から下書き</button>
+            </div>
+            <div class="field">
+              <label class="field-label" for="consult-purpose">相談の結論・目的</label>
+              <span class="prompt">最初に「何を確認・依頼したいか」を1～2文で記載します。</span>
+              <textarea id="consult-purpose" class="short" data-sensitive placeholder="例：安全性評価と本日の対応方針について相談したい。"></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label" for="consult-facts">現在の状況・確認できた事実</label>
+              <textarea id="consult-facts" data-sensitive placeholder="本人の報告、観察、経過、通常状態からの変化"></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label" for="consult-risk">安全性・リスク</label>
+              <textarea id="consult-risk" data-sensitive placeholder="自傷・自殺企図・他害、保護要因。該当しなければ空欄"></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label" for="consult-assessment">現時点の見立て・判断根拠</label>
+              <textarea id="consult-assessment" data-sensitive placeholder="事実と区別して、暫定的な臨床判断を記載"></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label" for="consult-actions">実施済みの介入・対応</label>
+              <textarea id="consult-actions" class="short" data-sensitive></textarea>
+            </div>
+            <div class="field">
+              <label class="field-label" for="consult-request">確認・依頼したいこと</label>
+              <textarea id="consult-request" class="short" data-sensitive placeholder="判断してほしい点、指示を受けたい点"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel preview-panel" aria-labelledby="consult-preview-title">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title" id="consult-preview-title">相談用要約</h2>
+              <p class="panel-note">口頭報告、院内連絡、カルテの相談記録に利用できます。</p>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div class="output empty" id="consult-output" aria-live="polite">左側へ入力すると、ここに相談用要約が表示されます。</div>
+            <div class="warning-list" id="consult-warning-box" role="status">
+              <strong>確認してください</strong>
+              <ul id="consult-warning-items"></ul>
+            </div>
+            <div class="actions">
+              <button type="button" class="button button-primary" id="copy-consult">相談用要約をコピー</button>
+              <button type="button" class="button button-secondary" id="select-consult">完成文を選択</button>
+              <button type="button" class="button button-danger" id="clear-consult">相談欄を消去</button>
+              <button type="button" class="button button-secondary" id="back-record">記録作成へ戻る</button>
+            </div>
+            <p class="privacy-foot"><strong>注意：</strong>緊急性の判断や院内連絡を遅らせて要約を完成させる必要はありません。まず必要な対応を優先してください。</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="view-guide" role="tabpanel" hidden>
+      <div class="guide-wrap">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">使い方・記録ガイド</h2>
+              <p class="panel-note">この説明は入力データとは独立しており、いつでも参照できます。</p>
+            </div>
+            <button type="button" class="button button-secondary button-small" id="guide-to-record">記録作成へ戻る</button>
+          </div>
+          <div class="guide-body">
+            <section class="guide-section">
+              <h2>最短の使い方</h2>
+              <ol>
+                <li>「通常DAP」「初回」「複雑ケース」から1つ選びます。</li>
+                <li>治療判断・安全・変化・引継ぎに必要な欄だけ入力します。</li>
+                <li>右側の完成文を確認し、不要な項目の「出力」を外してからコピーします。</li>
+              </ol>
+              <p>時間がないときは、<strong>主題、介入、本人の反応、次回方針</strong>を優先します。長く整った文章より、臨床上必要な要点が残っていることを優先します。</p>
+              <p>カルテ冒頭情報には実施時間や同席者を入力できます。入力欄の改行は完成記録でも維持され、文末の句点は自動追加されません。</p>
+            </section>
+
+            <section class="guide-section">
+              <h2>記録モードの選び方</h2>
+              <table class="guide-table">
+                <thead><tr><th>モード</th><th>適する場面</th><th>避けたい使い方</th></tr></thead>
+                <tbody>
+                  <tr><td>通常DAP</td><td>継続面接、主題が比較的明確</td><td>毎回すべての精神状態を網羅する</td></tr>
+                  <tr><td>初回・包括評価</td><td>初回、再評価、全体像の整理</td><td>生活史や外傷体験を必要以上に詳述する</td></tr>
+                  <tr><td>複雑ケースDAP</td><td>複数の維持要因、機能変化、判断の不確実性がある</td><td>複雑だからという理由だけで全欄を埋める</td></tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="guide-section">
+              <h2>DAPの考え方</h2>
+              <table class="guide-table">
+                <tbody>
+                  <tr><th>D：Data</th><td>本人の報告、観察事実、尺度、実施した介入、本人の反応</td></tr>
+                  <tr><th>A：Assessment</th><td>Dから導いた暫定的な理解、進捗、維持要因、強み、不確実性</td></tr>
+                  <tr><th>P：Plan</th><td>次回方針、本人との合意、ホームワーク、連携、次回確認事項</td></tr>
+                </tbody>
+              </table>
+              <h3>情報源を分ける</h3>
+              <div class="example">患者報告：「本人は夜間覚醒が減ったと述べた」<br>観察事実：「面接中の応答は一貫し、疎通良好」<br>臨床的見立て：「睡眠改善に伴い活動性が回復しつつあると考える」</div>
+            </section>
+
+            <section class="guide-section">
+              <h2>何を残し、何を省くか</h2>
+              <p>迷った情報は、次のいずれかに当てはまるか確認します。</p>
+              <ul>
+                <li>治療方針や臨床判断を変える</li>
+                <li>安全性・リスクに関係する</li>
+                <li>前回からの重要な変化である</li>
+                <li>次回または他職種への引継ぎに必要である</li>
+              </ul>
+              <p>該当しない細部は、公式記録から外す候補です。一時メモを使い、必要な情報だけ正式欄へ移すこともできます。</p>
+            </section>
+
+            <section class="guide-section">
+              <h2>初回・フォーミュレーション</h2>
+              <p>初回記録では、現在の困難、経過、生活機能、関連する背景、観察、暫定的理解、目標・計画をつなげます。分からないことは「未確認事項」に残し、推測で埋めません。</p>
+              <ul>
+                <li><strong>CBT：</strong>状況、認知・感情・身体反応・行動、維持循環</li>
+                <li><strong>ACT：</strong>体験の回避、認知的フュージョン、価値、実行可能な行動</li>
+                <li><strong>CFT：</strong>脅威・動因・安心システム、羞恥・自己批判、コンパッショネイトな資源</li>
+              </ul>
+              <p>これらは入力の視点であり、すべてを公式記録に書く必要はありません。</p>
+            </section>
+
+            <section class="guide-section">
+              <h2>トラウマ・解離の記録</h2>
+              <p>外傷体験の詳細そのものより、現在の症状、解離状態、誘因、機能への影響、安定化資源、実施した介入と反応を優先します。治療判断や安全確保に不要な詳細は、公式記録に含めない選択があります。</p>
+            </section>
+
+            <section class="guide-section">
+              <h2>自傷・自殺企図・他害等</h2>
+              <p>非自殺性自傷と自殺企図は区別して確認しますが、ツールはリスクを自動判定しません。自傷が普段からある場合も、通常状態からの変化、意図・計画・準備性、手段へのアクセス、保護要因、行った対応を確認します。</p>
+              <p>重大な自殺企図リスクまたは他害リスクでは、記録完成よりも安全確保と主治医への報告・相談を優先します。報告日時、相手、要点、受けた指示、実施内容を残します。</p>
+            </section>
+
+            <section class="guide-section">
+              <h2>相談用要約</h2>
+              <p>相談は「何を相談したいか」から始め、確認できた事実、臨床的判断、実施済み対応、求める判断・指示の順にまとめます。「現在の記録から下書き」は入力済み文章を移すだけで、新しい事実や判断を生成しません。</p>
+            </section>
+
+            <section class="guide-section">
+              <h2>プライバシーと限界</h2>
+              <ul>
+                <li>入力内容は保存・外部送信されません。ページを閉じると消えます。</li>
+                <li>氏名、患者ID、生年月日など直接識別情報は入力しません。</li>
+                <li>コピー後のクリップボードはOS側に残る場合があります。</li>
+                <li>本ツールは診断、リスク評価、院内手順、臨床家の判断を代替しません。</li>
+              </ul>
+              <p>文字数の目安は、このツール上の運用補助であり、研究で確立された基準ではありません。実際の記録時間と読みやすさを見ながら調整してください。</p>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (function () {
+      "use strict";
+
+      var fieldDefinitions = [
+        { id: "session-focus", label: "主題・変化", modes: ["standard", "complex"], dap: "D" },
+        { id: "patient-report", label: "本人の報告", modes: ["standard", "complex"], dap: "D" },
+        { id: "observation", label: "観察・精神状態", modes: ["standard", "complex"], dap: "D" },
+        { id: "measure-result", label: "尺度・機能", modes: ["complex"], dap: "D" },
+        { id: "intervention", label: "介入", modes: ["standard", "complex"], dap: "D" },
+        { id: "response", label: "反応", modes: ["standard", "complex"], dap: "D" },
+        { id: "assessment", label: "見立て", modes: ["standard", "complex"], dap: "A" },
+        { id: "goal-change", label: "進捗・変化", modes: ["standard", "complex"], dap: "A" },
+        { id: "factors", label: "背景・維持要因", modes: ["complex"], dap: "A" },
+        { id: "resources", label: "強み・保護要因", modes: ["complex"], dap: "A" },
+        { id: "uncertainty", label: "未解決・不確実性", modes: ["complex"], dap: "A" },
+        { id: "plan", label: "今後の方針", modes: ["standard", "complex"], dap: "P" },
+        { id: "homework", label: "合意・ホームワーク", modes: ["standard", "complex"], dap: "P" },
+        { id: "coordination", label: "共有・連携", modes: ["standard", "complex"], dap: "P" },
+        { id: "reminder", label: "次回確認", modes: ["standard", "complex"], dap: "P" },
+
+        { id: "intake-purpose", label: "面接目的・本人の希望", modes: ["intake"], intake: "面接目的" },
+        { id: "intake-problems", label: "主要な困りごと", modes: ["intake"], intake: "現在の困難" },
+        { id: "intake-course", label: "始まり・経過・誘因", modes: ["intake"], intake: "現在の困難" },
+        { id: "intake-impact", label: "生活機能への影響", modes: ["intake"], intake: "現在の困難" },
+        { id: "intake-history", label: "関連する既往・背景", modes: ["intake"], intake: "関連歴・観察" },
+        { id: "intake-state", label: "本人の報告・観察", modes: ["intake"], intake: "関連歴・観察" },
+        { id: "intake-mse", label: "精神状態", modes: ["intake"], intake: "関連歴・観察" },
+        { id: "intake-formulation", label: "暫定的理解", modes: ["intake"], intake: "暫定的理解" },
+        { id: "intake-goals", label: "優先目標", modes: ["intake"], intake: "目標・計画" },
+        { id: "intake-plan", label: "評価・介入・連携", modes: ["intake"], intake: "目標・計画" },
+        { id: "intake-unknowns", label: "未確認・次回確認", modes: ["intake"], intake: "目標・計画" },
+
+        { id: "trauma-current", label: "トラウマ・解離の現状", addon: "trauma", dap: "D", intake: "関連歴・観察" },
+        { id: "trauma-impact", label: "影響・安定化資源", addon: "trauma", dap: "A", intake: "暫定的理解" },
+        { id: "trauma-plan", label: "安定化介入・方針", addon: "trauma", dap: "P", intake: "目標・計画" },
+        { id: "student-context", label: "学業・学校生活", addon: "student", dap: "D", intake: "関連歴・観察" },
+        { id: "student-sharing", label: "保護者・学校との共有", addon: "student", dap: "P", intake: "目標・計画" },
+        { id: "collateral-source", label: "同席者・情報源・同意", addon: "collateral", dap: "D", intake: "関連歴・観察" },
+        { id: "collateral-difference", label: "報告の相違・相互作用", addon: "collateral", dap: "D", intake: "関連歴・観察" },
+        { id: "collateral-agreement", label: "合意・情報共有", addon: "collateral", dap: "P", intake: "目標・計画" },
+
+        { id: "safety-baseline", label: "通常状態・自傷等の機能", addon: "safety", dap: "D", intake: "安全性" },
+        { id: "safety-change", label: "今回の変化・事実", addon: "safety", dap: "D", intake: "安全性" },
+        { id: "safety-suicide", label: "自殺念慮・意図・計画等", addon: "safety", dap: "D", intake: "安全性" },
+        { id: "safety-harm", label: "他害の対象・意図・具体性", addon: "safety", dap: "D", intake: "安全性" },
+        { id: "safety-protective", label: "保護要因・安全資源", addon: "safety", dap: "A", intake: "安全性" },
+        { id: "safety-judgment", label: "臨床的判断・根拠", addon: "safety", dap: "A", intake: "安全性" },
+        { id: "safety-actions", label: "対応・安全計画・フォロー", addon: "safety", dap: "P", intake: "安全性" }
+      ];
+
+      var modeGuides = {
+        standard: {
+          label: "通常DAP",
+          max: 450,
+          guide: "運用上の目安：450文字",
+          note: "継続面接用です。主題・介入・反応・次回方針を中心に、変化のない項目は省けます。"
+        },
+        intake: {
+          label: "初回・包括評価",
+          max: 1200,
+          guide: "運用上の目安：1200文字",
+          note: "初回または全体像の再整理用です。生活史を網羅せず、現在の問題と治療方針に関係する情報を優先します。"
+        },
+        complex: {
+          label: "複雑ケースDAP",
+          max: 750,
+          guide: "運用上の目安：750文字",
+          note: "複数の維持要因や不確実性がある回に使用します。複雑ケースでも、全欄を埋める必要はありません。"
+        }
+      };
+
+      var intakeOrder = ["面接目的", "現在の困難", "関連歴・観察", "暫定的理解", "目標・計画", "安全性"];
+      var modeSelect = document.getElementById("mode");
+      var styleSelect = document.getElementById("output-style");
+      var recordOutput = document.getElementById("record-output");
+      var consultOutput = document.getElementById("consult-output");
+      var toast = document.getElementById("toast");
+      var lastRecordOutput = "";
+      var lastConsultOutput = "";
+      var toastTimer = null;
+      var activeView = "record";
+
+      function normalizeText(value) {
+        return String(value || "")
+          .replace(/\r\n/g, "\n")
+          .split("\n")
+          .map(function (line) {
+            return line.trim();
+          })
+          .join("\n")
+          .trim();
+      }
+
+      function withPeriod(value) {
+        return value || "";
+      }
+
+      function valueOf(id) {
+        var element = document.getElementById(id);
+        return element ? normalizeText(element.value) : "";
+      }
+
+      function rawValueOf(id) {
+        var element = document.getElementById(id);
+        return element ? String(element.value || "").trim() : "";
+      }
+
+      function isIncluded(id) {
+        var checkbox = document.querySelector('[data-include="' + id + '"]');
+        return !checkbox || checkbox.checked;
+      }
+
+      function enabledAddons() {
+        var result = {};
+        document.querySelectorAll("[data-addon-toggle]").forEach(function (checkbox) {
+          result[checkbox.getAttribute("data-addon-toggle")] = checkbox.checked;
+        });
+        return result;
+      }
+
+      function getSafetyStatus() {
+        var selected = document.querySelector('input[name="safety-status"]:checked');
+        return selected ? selected.value : "not-assessed";
+      }
+
+      function safetyStatusLabel(status) {
+        var labels = {
+          "not-assessed": "未評価",
+          none: "今回の確認で特記事項なし",
+          baseline: "既存の自傷等あり・急性変化なし",
+          change: "通常状態から変化あり・要記載",
+          major: "重大な自殺企図／他害リスク・要対応"
+        };
+        return labels[status] || "未評価";
+      }
+
+      function definitionActive(definition, mode, addons) {
+        if (definition.modes && definition.modes.indexOf(mode) === -1) return false;
+        if (definition.addon && !addons[definition.addon]) return false;
+        return true;
+      }
+
+      function sectionFor(definition, mode) {
+        return mode === "intake" ? definition.intake : definition.dap;
+      }
+
+      function reportLogText() {
+        var parts = [];
+        var method = rawValueOf("report-method");
+        var values = [
+          ["日時", valueOf("report-time")],
+          ["方法", method],
+          ["相談先", valueOf("report-recipient")],
+          ["要点", valueOf("report-content")],
+          ["指示", valueOf("report-instruction")],
+          ["実施", valueOf("report-action")]
+        ];
+        values.forEach(function (entry) {
+          if (entry[1]) parts.push(entry[0] + "：" + entry[1]);
+        });
+        return parts.join("、");
+      }
+
+      function reportHasContent() {
+        return Boolean(
+          valueOf("report-time") ||
+          rawValueOf("report-method") ||
+          valueOf("report-recipient") ||
+          valueOf("report-content") ||
+          valueOf("report-instruction") ||
+          valueOf("report-action")
+        );
+      }
+
+      function collectRecord() {
+        var mode = modeSelect.value;
+        var addons = enabledAddons();
+        var order = mode === "intake" ? intakeOrder : ["D", "A", "P"];
+        var sections = {};
+        var excluded = [];
+        order.forEach(function (key) { sections[key] = []; });
+
+        fieldDefinitions.forEach(function (definition) {
+          if (!definitionActive(definition, mode, addons)) return;
+          var text = valueOf(definition.id);
+          if (!text) return;
+          var section = sectionFor(definition, mode);
+          if (!section) return;
+          var entry = { label: definition.label, text: text };
+          if (isIncluded(definition.id)) {
+            if (!sections[section]) sections[section] = [];
+            sections[section].push(entry);
+          } else {
+            excluded.push(entry);
+          }
+        });
+
+        if (addons.safety) {
+          var status = getSafetyStatus();
+          if (status !== "not-assessed") {
+            var statusSection = mode === "intake" ? "安全性" : "A";
+            sections[statusSection].unshift({ label: "安全性の確認", text: safetyStatusLabel(status) });
+          }
+          if (document.getElementById("doctor-report-toggle").checked || reportHasContent()) {
+            var log = reportLogText();
+            if (log) {
+              var reportSection = mode === "intake" ? "安全性" : "P";
+              sections[reportSection].push({ label: "主治医への報告・相談", text: log });
+            }
+          }
+        }
+
+        return { mode: mode, order: order, sections: sections, excluded: excluded };
+      }
+
+      function collectHeaderText() {
+        var ids = ["record-service", "record-attendance", "record-header-other"];
+        return ids.map(function (id) {
+          if (!isIncluded(id)) return "";
+          return valueOf(id);
+        }).filter(Boolean).join("\n");
+      }
+
+      function formatSection(section, items, mode, style) {
+        if (!items || !items.length) return "";
+        var heading = mode === "intake" ? "【" + section + "】" : (style === "bullets" ? section : section + "：");
+        var lines = items.map(function (item) {
+          var prefix = style === "bullets" ? "・" : "";
+          return prefix + item.label + "：" + withPeriod(item.text);
+        });
+        return heading + "\n" + lines.join("\n");
+      }
+
+      function buildRecordWarnings(collected) {
+        var warnings = [];
+        var mode = collected.mode;
+        var sections = collected.sections;
+        var hasAny = collected.order.some(function (key) { return sections[key] && sections[key].length; });
+        if (hasAny && mode !== "intake") {
+          if (!sections.D.length) warnings.push("D（報告・観察・介入・反応）が空欄です。");
+          if (!sections.A.length) warnings.push("A（臨床的理解・進捗）が空欄です。");
+          if (!sections.P.length) warnings.push("P（方針・連携）が空欄です。");
+        }
+        if (hasAny && mode === "intake") {
+          if (!valueOf("intake-problems")) warnings.push("初回記録の「主要な困りごと」が空欄です。");
+          if (!valueOf("intake-formulation")) warnings.push("暫定的理解が空欄です。情報不足なら、その旨を記載できます。");
+          if (!valueOf("intake-plan")) warnings.push("今後の評価・介入・連携が空欄です。");
+        }
+
+        var addons = enabledAddons();
+        if (addons.safety) {
+          var status = getSafetyStatus();
+          if (status === "not-assessed") warnings.push("安全性欄は「今回は未評価」のままです。");
+          if (status === "baseline" && !valueOf("safety-baseline")) {
+            warnings.push("急性変化なしを選択していますが、通常状態・自傷等の機能が空欄です。");
+          }
+          if ((status === "change" || status === "major") && !valueOf("safety-change")) {
+            warnings.push("変化・重大リスクを選択していますが、今回の具体的事実が空欄です。");
+          }
+          if ((status === "change" || status === "major") && !valueOf("safety-judgment")) {
+            warnings.push("変化・重大リスクを選択していますが、臨床的判断と根拠が空欄です。");
+          }
+          if (status === "major" && !valueOf("safety-actions")) {
+            warnings.push("重大リスクを選択していますが、実施した対応・安全計画が空欄です。");
+          }
+          if (status === "major" && !document.getElementById("doctor-report-toggle").checked && !reportHasContent()) {
+            warnings.push("重大リスクを選択しています。主治医への報告・相談記録を確認してください。");
+          }
+          if (status === "major" && (!valueOf("report-recipient") || !valueOf("report-content"))) {
+            warnings.push("重大リスク時の報告先または報告した要点が空欄です。");
+          }
+          if (status === "none") {
+            var safetyDetailExists = [
+              "safety-baseline", "safety-change", "safety-suicide", "safety-harm",
+              "safety-protective", "safety-judgment", "safety-actions"
+            ].some(function (id) { return Boolean(valueOf(id)); });
+            if (safetyDetailExists) warnings.push("「特記事項なし」と安全性の詳細入力が併存しています。整合性を確認してください。");
+          }
+        }
+        if (valueOf("scratch-note")) warnings.push("正式出力に含まれない一時メモが残っています。必要な内容を移したか確認してください。");
+        return warnings;
+      }
+
+      function renderRecord() {
+        var collected = collectRecord();
+        var style = styleSelect.value;
+        var blocks = collected.order.map(function (section) {
+          return formatSection(section, collected.sections[section], collected.mode, style);
+        }).filter(Boolean);
+        var headerText = collectHeaderText();
+        if (headerText) blocks.unshift(headerText);
+        lastRecordOutput = blocks.join("\n\n");
+        recordOutput.textContent = lastRecordOutput || "左側へ入力すると、ここに記録が表示されます。";
+        recordOutput.classList.toggle("empty", !lastRecordOutput);
+
+        var count = lastRecordOutput.length;
+        var guide = modeGuides[collected.mode];
+        document.getElementById("character-count").textContent = count + "文字";
+        document.getElementById("character-guide").textContent = guide.guide + "（基準ではありません）";
+        var percent = Math.min(100, Math.round((count / guide.max) * 100));
+        var fill = document.getElementById("meter-fill");
+        fill.style.width = count ? percent + "%" : "0";
+        fill.classList.toggle("over", count > guide.max);
+
+        var warnings = buildRecordWarnings(collected);
+        renderWarningList("record-warning-box", "record-warning-items", warnings);
+      }
+
+      function updateModeVisibility() {
+        var mode = modeSelect.value;
+        document.querySelectorAll("[data-modes]").forEach(function (element) {
+          var modes = element.getAttribute("data-modes").split(",");
+          element.hidden = modes.indexOf(mode) === -1;
+        });
+        document.getElementById("mode-note").textContent = modeGuides[mode].note;
+        document.getElementById("mode-label").textContent = modeGuides[mode].label;
+        updateLensPrompt();
+      }
+
+      function updateAddonVisibility() {
+        var addons = enabledAddons();
+        document.querySelectorAll("[data-addon]").forEach(function (element) {
+          element.hidden = !addons[element.getAttribute("data-addon")];
+        });
+        updateSafetyUi();
+      }
+
+      function updateSafetyUi() {
+        var addons = enabledAddons();
+        var status = getSafetyStatus();
+        var safetyLabel = document.getElementById("safety-label");
+        if (!addons.safety) {
+          safetyLabel.textContent = "安全性欄：未使用";
+          safetyLabel.classList.add("warn");
+        } else {
+          safetyLabel.textContent = "安全性：" + safetyStatusLabel(status);
+          safetyLabel.classList.toggle("warn", status !== "none" && status !== "baseline");
+        }
+        var showReport = document.getElementById("doctor-report-toggle").checked || status === "major";
+        document.getElementById("doctor-report-fields").hidden = !showReport;
+      }
+
+      function updateLensPrompt() {
+        var lens = document.getElementById("formulation-lens").value;
+        var prompts = {
+          integrated: "現在の困難を、生物・心理・社会的要因、誘発・維持・保護要因からつなげます。",
+          cbt: "状況、認知・感情・身体反応・行動と、それらの維持循環を検討します。",
+          act: "体験の回避、認知的フュージョン、価値、実行可能な行動を検討します。",
+          cft: "脅威・動因・安心システム、羞恥・自己批判、コンパッショネイトな資源を検討します。"
+        };
+        document.getElementById("lens-prompt").textContent = prompts[lens] || "";
+      }
+
+      function renderWarningList(boxId, listId, warnings) {
+        var box = document.getElementById(boxId);
+        var list = document.getElementById(listId);
+        list.replaceChildren();
+        warnings.forEach(function (warning) {
+          var item = document.createElement("li");
+          item.textContent = warning;
+          list.appendChild(item);
+        });
+        box.classList.toggle("visible", warnings.length > 0);
+      }
+
+      function joinLabeled(entries) {
+        return entries.map(function (entry) {
+          var text = valueOf(entry[1]);
+          return text ? entry[0] + "：" + text : "";
+        }).filter(Boolean).join("\n");
+      }
+
+      function importConsultDraft() {
+        var consultIds = ["consult-purpose", "consult-facts", "consult-risk", "consult-assessment", "consult-actions", "consult-request"];
+        var hasDraft = consultIds.some(function (id) { return Boolean(valueOf(id)); });
+        if (hasDraft && !window.confirm("相談欄の現在の入力を、記録内容から作った下書きで置き換えますか？")) return;
+
+        var mode = modeSelect.value;
+        var facts;
+        var assessment;
+        var actions;
+        if (mode === "intake") {
+          facts = joinLabeled([
+            ["主要な困りごと", "intake-problems"],
+            ["経過", "intake-course"],
+            ["生活への影響", "intake-impact"],
+            ["本人の報告・観察", "intake-state"],
+            ["精神状態", "intake-mse"]
+          ]);
+          assessment = joinLabeled([
+            ["暫定的理解", "intake-formulation"],
+            ["未確認事項", "intake-unknowns"]
+          ]);
+          actions = joinLabeled([
+            ["今後の評価・介入・連携", "intake-plan"]
+          ]);
+        } else {
+          facts = joinLabeled([
+            ["主題・変化", "session-focus"],
+            ["本人の報告", "patient-report"],
+            ["観察", "observation"],
+            ["尺度・機能", "measure-result"]
+          ]);
+          assessment = joinLabeled([
+            ["見立て", "assessment"],
+            ["進捗・変化", "goal-change"],
+            ["背景・維持要因", "factors"],
+            ["強み・保護要因", "resources"],
+            ["不確実性", "uncertainty"]
+          ]);
+          actions = joinLabeled([
+            ["実施した介入", "intervention"],
+            ["本人の反応", "response"],
+            ["今後の方針", "plan"],
+            ["共有・連携", "coordination"]
+          ]);
+        }
+
+        var addons = enabledAddons();
+        var risk = "";
+        if (addons.safety) {
+          risk = joinLabeled([
+            ["確認状況", ""],
+            ["通常状態", "safety-baseline"],
+            ["今回の変化", "safety-change"],
+            ["自殺念慮・意図・計画等", "safety-suicide"],
+            ["他害", "safety-harm"],
+            ["保護要因", "safety-protective"],
+            ["臨床的判断", "safety-judgment"]
+          ]);
+          var statusLine = "確認状況：" + safetyStatusLabel(getSafetyStatus());
+          risk = risk ? statusLine + "\n" + risk : statusLine;
+          var riskActions = joinLabeled([["安全確保・フォロー", "safety-actions"]]);
+          actions = [actions, riskActions].filter(Boolean).join("\n");
+          if (!rawValueOf("consult-type") && (getSafetyStatus() === "change" || getSafetyStatus() === "major")) {
+            document.getElementById("consult-type").value = "自傷・自殺企図・他害等の安全性";
+          }
+        }
+
+        document.getElementById("consult-facts").value = facts;
+        document.getElementById("consult-risk").value = risk;
+        document.getElementById("consult-assessment").value = assessment;
+        document.getElementById("consult-actions").value = actions;
+        renderConsult();
+        showToast("現在の記録内容を相談欄へ配置しました。");
+      }
+
+      function buildConsultOutput() {
+        var blocks = [];
+        var type = rawValueOf("consult-type");
+        var fields = [
+          ["相談の結論・目的", valueOf("consult-purpose")],
+          ["現在の状況・確認事実", valueOf("consult-facts")],
+          ["安全性・リスク", valueOf("consult-risk")],
+          ["現時点の見立て", valueOf("consult-assessment")],
+          ["実施済み対応", valueOf("consult-actions")],
+          ["確認・依頼事項", valueOf("consult-request")]
+        ];
+        if (type) blocks.push("【相談種別】\n" + withPeriod(type));
+        fields.forEach(function (entry) {
+          if (entry[1]) blocks.push("【" + entry[0] + "】\n" + withPeriod(entry[1]));
+        });
+        if (reportHasContent()) blocks.push("【報告・相談後の記録】\n" + withPeriod(reportLogText()));
+        return blocks.join("\n\n");
+      }
+
+      function renderConsult() {
+        lastConsultOutput = buildConsultOutput();
+        consultOutput.textContent = lastConsultOutput || "左側へ入力すると、ここに相談用要約が表示されます。";
+        consultOutput.classList.toggle("empty", !lastConsultOutput);
+        var warnings = [];
+        if (lastConsultOutput && !valueOf("consult-purpose")) warnings.push("相談の結論・目的が空欄です。");
+        if (lastConsultOutput && !valueOf("consult-request")) warnings.push("確認・依頼したいことが空欄です。");
+        if (rawValueOf("consult-type") === "自傷・自殺企図・他害等の安全性" && !valueOf("consult-risk")) {
+          warnings.push("安全性の相談ですが、安全性・リスク欄が空欄です。");
+        }
+        renderWarningList("consult-warning-box", "consult-warning-items", warnings);
+      }
+
+      function appendPhrase(targetId, phrase) {
+        var target = document.getElementById(targetId);
+        if (!target) return;
+        var current = normalizeText(target.value);
+        target.value = current ? current + "\n" + phrase : phrase;
+        target.focus();
+        renderRecord();
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("visible");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(function () {
+          toast.classList.remove("visible");
+        }, 2400);
+      }
+
+      function fallbackCopy(text) {
+        var temporary = document.createElement("textarea");
+        temporary.value = text;
+        temporary.setAttribute("readonly", "");
+        temporary.style.position = "fixed";
+        temporary.style.opacity = "0";
+        document.body.appendChild(temporary);
+        temporary.select();
+        var copied = document.execCommand("copy");
+        temporary.remove();
+        return copied;
+      }
+
+      function copyText(text, successMessage) {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(function () {
+            showToast(successMessage);
+          }).catch(function () {
+            if (fallbackCopy(text)) showToast(successMessage);
+            else showToast("コピーできませんでした。完成文を選択して手動でコピーしてください。");
+          });
+        } else if (fallbackCopy(text)) {
+          showToast(successMessage);
+        } else {
+          showToast("コピーできませんでした。完成文を選択して手動でコピーしてください。");
+        }
+      }
+
+      function selectText(element, emptyMessage) {
+        if (!element.textContent || element.classList.contains("empty")) {
+          showToast(emptyMessage);
+          return;
+        }
+        var selection = window.getSelection();
+        var range = document.createRange();
+        range.selectNodeContents(element);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        showToast("完成文を選択しました。");
+      }
+
+      function clearConsult(skipConfirmation) {
+        var ids = ["consult-purpose", "consult-facts", "consult-risk", "consult-assessment", "consult-actions", "consult-request"];
+        var hasContent = ids.some(function (id) { return Boolean(valueOf(id)); });
+        if (!skipConfirmation && hasContent && !window.confirm("相談欄の入力を消去します。元に戻せません。よろしいですか？")) return;
+        ids.forEach(function (id) { document.getElementById(id).value = ""; });
+        document.getElementById("consult-type").value = "";
+        renderConsult();
+        if (!skipConfirmation) showToast("相談欄を消去しました。");
+      }
+
+      function clearAll(skipConfirmation) {
+        var hasContent = Array.prototype.some.call(document.querySelectorAll("[data-sensitive]"), function (element) {
+          return String(element.value || "").trim();
+        });
+        if (!skipConfirmation && hasContent && !window.confirm("記録・相談を含む全入力を消去します。元に戻せません。よろしいですか？")) return;
+
+        document.querySelectorAll("[data-sensitive]").forEach(function (element) { element.value = ""; });
+        document.querySelectorAll("[data-include]").forEach(function (checkbox) { checkbox.checked = true; });
+        document.querySelectorAll("[data-addon-toggle]").forEach(function (checkbox) { checkbox.checked = false; });
+        document.querySelector('input[name="safety-status"][value="not-assessed"]').checked = true;
+        document.getElementById("doctor-report-toggle").checked = false;
+        document.getElementById("report-method").value = "";
+        document.getElementById("consult-type").value = "";
+        document.getElementById("formulation-lens").value = "integrated";
+        modeSelect.value = "standard";
+        styleSelect.value = "compact";
+        document.getElementById("guided-toggle").checked = true;
+        document.getElementById("record-surface").classList.remove("guide-off");
+        updateModeVisibility();
+        updateAddonVisibility();
+        renderRecord();
+        renderConsult();
+        if (!skipConfirmation) showToast("すべての入力内容を消去しました。");
+      }
+
+      function switchView(view) {
+        activeView = view;
+        document.querySelectorAll("[data-view]").forEach(function (button) {
+          button.setAttribute("aria-selected", String(button.getAttribute("data-view") === view));
+        });
+        ["record", "consult", "guide"].forEach(function (name) {
+          document.getElementById("view-" + name).hidden = name !== view;
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      document.querySelectorAll("[data-view]").forEach(function (button) {
+        button.addEventListener("click", function () { switchView(button.getAttribute("data-view")); });
+      });
+      document.getElementById("back-record").addEventListener("click", function () { switchView("record"); });
+      document.getElementById("guide-to-record").addEventListener("click", function () { switchView("record"); });
+
+      modeSelect.addEventListener("change", function () {
+        updateModeVisibility();
+        renderRecord();
+      });
+      styleSelect.addEventListener("change", renderRecord);
+      document.getElementById("guided-toggle").addEventListener("change", function (event) {
+        document.getElementById("record-surface").classList.toggle("guide-off", !event.target.checked);
+      });
+      document.getElementById("formulation-lens").addEventListener("change", updateLensPrompt);
+      document.querySelectorAll("[data-addon-toggle]").forEach(function (checkbox) {
+        checkbox.addEventListener("change", function () {
+          updateAddonVisibility();
+          renderRecord();
+        });
+      });
+      document.querySelectorAll('input[name="safety-status"]').forEach(function (radio) {
+        radio.addEventListener("change", function () {
+          updateSafetyUi();
+          renderRecord();
+        });
+      });
+      document.getElementById("doctor-report-toggle").addEventListener("change", function () {
+        updateSafetyUi();
+        renderRecord();
+        renderConsult();
+      });
+      document.querySelectorAll("[data-include]").forEach(function (checkbox) {
+        checkbox.addEventListener("change", renderRecord);
+      });
+      document.querySelectorAll(".chip").forEach(function (button) {
+        button.addEventListener("click", function () {
+          appendPhrase(button.getAttribute("data-target"), button.getAttribute("data-phrase"));
+        });
+      });
+      document.querySelectorAll("textarea, input[type='text']").forEach(function (element) {
+        element.addEventListener("input", function () {
+          renderRecord();
+          renderConsult();
+        });
+      });
+      document.getElementById("report-method").addEventListener("change", function () {
+        renderRecord();
+        renderConsult();
+      });
+      document.getElementById("consult-type").addEventListener("change", renderConsult);
+
+      document.getElementById("copy-record").addEventListener("click", function () {
+        if (!lastRecordOutput) return showToast("コピーする記録がまだありません。");
+        copyText(lastRecordOutput, "完成記録をコピーしました。");
+      });
+      document.getElementById("select-record").addEventListener("click", function () {
+        selectText(recordOutput, "選択する記録がまだありません。");
+      });
+      document.getElementById("copy-consult").addEventListener("click", function () {
+        if (!lastConsultOutput) return showToast("コピーする相談用要約がまだありません。");
+        copyText(lastConsultOutput, "相談用要約をコピーしました。");
+      });
+      document.getElementById("select-consult").addEventListener("click", function () {
+        selectText(consultOutput, "選択する相談用要約がまだありません。");
+      });
+      document.getElementById("copy-clear").addEventListener("click", function () {
+        copyText(" ", "クリップボードを空にしました。");
+      });
+      document.getElementById("clear-all").addEventListener("click", function () { clearAll(false); });
+      document.getElementById("clear-consult").addEventListener("click", function () { clearConsult(false); });
+      document.getElementById("import-consult").addEventListener("click", importConsultDraft);
+
+      var timerDisplay = document.getElementById("timer");
+      var timerButton = document.getElementById("timer-toggle");
+      var timerSeconds = 0;
+      var timerHandle = null;
+      function updateTimer() {
+        var minutes = Math.floor(timerSeconds / 60);
+        var seconds = timerSeconds % 60;
+        timerDisplay.textContent = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+      }
+      document.getElementById("timer-toggle").addEventListener("click", function () {
+        if (timerHandle) {
+          window.clearInterval(timerHandle);
+          timerHandle = null;
+          timerButton.textContent = "再開";
+        } else {
+          timerHandle = window.setInterval(function () {
+            timerSeconds += 1;
+            updateTimer();
+          }, 1000);
+          timerButton.textContent = "一時停止";
+        }
+      });
+      document.getElementById("timer-reset").addEventListener("click", function () {
+        if (timerHandle) window.clearInterval(timerHandle);
+        timerHandle = null;
+        timerSeconds = 0;
+        timerButton.textContent = "開始";
+        updateTimer();
+      });
+
+      window.addEventListener("beforeunload", function (event) {
+        var hasContent = Array.prototype.some.call(document.querySelectorAll("[data-sensitive]"), function (element) {
+          return String(element.value || "").trim();
+        });
+        if (hasContent) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+      window.addEventListener("pagehide", function () { clearAll(true); });
+      document.addEventListener("keydown", function (event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+          event.preventDefault();
+          if (activeView === "consult") document.getElementById("copy-consult").click();
+          else if (activeView === "record") document.getElementById("copy-record").click();
+        }
+      });
+
+      updateModeVisibility();
+      updateAddonVisibility();
+      updateLensPrompt();
+      renderRecord();
+      renderConsult();
+    })();
+  </script>
+</body>
+</html>
