@@ -25,8 +25,8 @@ jobs:
           set -euo pipefail
           changed="$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" || true)"
           version=""
-          staged="$(echo "$changed" | grep -E '^\.staging/v[4-9]/READY$' | head -n 1 || true)"
-          direct="$(echo "$changed" | grep -E '^versions/v[4-9]\.html$' | head -n 1 || true)"
+          staged="$(echo "$changed" | grep -E '^\.staging/v[0-9]+/READY$' | head -n 1 || true)"
+          direct="$(echo "$changed" | grep -E '^versions/v[0-9]+\.html$' | head -n 1 || true)"
           if [ -n "$staged" ]; then
             version="$(echo "$staged" | cut -d/ -f2)"
             echo "source=staged" >> "$GITHUB_OUTPUT"
